@@ -34,7 +34,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--db", type=str, help="path of users.toml user database file")
     args = parser.parse_args()
-    
+
     if args.db is None:
         print("Error: no users.toml given. Please add with '--db </path/to/users.toml>'")
         sys.exit(1)
@@ -46,8 +46,10 @@ def main():
     countPassword = 0
     countPasswordUnencrypted = 0
     countPasswordEncrypted = 0
+    countPasswordDuplicates = 0
     countCardkey = 0
     countCardkeyInvalid = 0
+    countCardkeyDuplicates = 0
     countUnknownKeys = 0
 
     countWarnings = 0
@@ -82,6 +84,9 @@ def main():
                 print(str(e))
             sys.exit(1)
 
+        passwds = []
+        cardkeys = []
+
         for user in data:
             print("--- {}".format(user))
 
@@ -107,19 +112,36 @@ def main():
             if "passwd" in data[user]:
                 passwd = data[user]["passwd"]
                 countPassword += 1
-                if passwd.startswith("$argon2") is False:
+                if type(passwd) != str:
+                    print("Warning: password for user '{}' is not defined as string! BFFH will fail to load".format(user))
+                    countWarnings += 1
+                elif passwd.startswith("$argon2") is False:
                     print("Warning: Password for user '{}' is not encrypted!".format(user))
                     countWarnings += 1
                     countPasswordUnencrypted += 1
                 else:
                     countPasswordEncrypted += 1
+                if passwd in passwds:
+                    print("Warning: password for user '{}' is already in use by other user(s). That might be insecure".format(user))
+                    countPasswordDuplicates += 1
+                    countWarnings += 1
+                passwds.append(passwd)
 
             if "cardkey" in data[user]:
-                cardkey = data[user]["cardkey"]  
-                if is_valid_uuid(cardkey) is False:
-                    print("Warning: Cardkey for user '{}' contains invalid cardkey (no UUID v4)".format(user))
+                cardkey = data[user]["cardkey"]
+                if type(passwd) != str:
+                    print("Warning: cardkey for user '{}' is not defined as string! BFFH will fail to load".format(user))
+                    countWarnings += 1
+                elif is_valid_uuid(cardkey) is False:
+                    print("Warning: cardkey for user '{}' contains invalid cardkey (no UUID v4)".format(user))
                     countCardkeyInvalid += 1
                     countWarnings += 1
+                if cardkey in cardkeys:
+                    print("Warning: cardkey for user '{}' is already in use by other user(s). That might be insecure".format(user))
+                    countCardkeyDuplicates += 1
+                    countWarnings += 1
+
+                cardkeys.append(cardkey)
 
                 countCardkey += 1
 
@@ -138,8 +160,8 @@ def main():
         print("{} Database statistics {}\n".format("*"*25, "*"*25))
         print("- Total users: {}".format(countUsers))
         print("- Total unique roles: {}".format(len(uniqueRoles)))
-        print("- Total passwords: {} (encrypted: {}, unencrypted: {})".format(countPassword, countPasswordEncrypted, countPasswordUnencrypted))
-        print("- Total cardkeys: {}".format(countCardkey))
+        print("- Total passwords: {} (encrypted: {}, unencrypted: {}, duplicates: {})".format(countPassword, countPasswordEncrypted, countPasswordUnencrypted, countPasswordDuplicates))
+        print("- Total cardkeys: {} (duplicates: {})".format(countCardkey, countCardkeyDuplicates))
 
         print("\n")
 

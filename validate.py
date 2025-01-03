@@ -43,6 +43,7 @@ def main():
     countUsersWithoutCardkeyOrPassword = 0
     uniqueRoles = []
     countUserWithoutRoles = 0
+    countUserWithDuplicateRoles = 0
     countPassword = 0
     countPasswordUnencrypted = 0
     countPasswordEncrypted = 0
@@ -101,7 +102,16 @@ def main():
                 if type(roles) != list:
                     print("Warning: roles for user '{}' are not defined as array! BFFH will fail to load".format(user))
                     countWarnings += 1
+                userRoles = []
                 for role in roles:
+                    # check if a role is duplicate in the array for the user
+                    if role not in userRoles:
+                        userRoles.append(role)
+                    else:
+                        print("Warning: duplicate role '{}' for user '{}'".format(role, user))
+                        countUserWithDuplicateRoles += 1
+                        countWarnings += 1
+                    # collect all unique roles for the toml file
                     if role not in uniqueRoles:
                         uniqueRoles.append(role)
                 if roles is None: #if role key is defined but empty
@@ -171,6 +181,9 @@ def main():
 
         if countUserWithoutRoles > 0:
             print("- {} users without any roles. They won't be able to do something as client!".format(countUserWithoutRoles))
+
+        if countUserWithDuplicateRoles > 0:
+            print("- {} users with duplicate roles. Please clean up!".format(countUserWithDuplicateRoles))
 
         if len(uniqueRoles) == 0:
             print("- Globally, there are no roles assigned for any user. They won't be able to do something as client!")

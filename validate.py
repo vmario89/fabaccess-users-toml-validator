@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 '''
 This script validates users.toml for several aspects
 The script requires at least Python 3.11
@@ -36,8 +38,15 @@ def main():
     args = parser.parse_args()
 
     if args.db is None:
-        print("Error: no users.toml given. Please add with '--db </path/to/users.toml>'")
-        sys.exit(1)
+        usertoml = args.db
+        print("No custom users.toml given. You may add it with '--db </path/to/users.toml>'")
+        default_usertoml = "/etc/bffh/users.toml"
+        if os.path.isfile(default_usertoml):
+            print("Found default file: {}. Using this ...".format(default_usertoml))
+            usertoml = default_usertoml
+        else:
+            print("Error: no (default) users.toml file given or found. Cannot continue!".format(default_usertoml))
+            sys.exit(1)
 
     countUsers = 0
     countUsersWithoutCardkeyOrPassword = 0
@@ -57,8 +66,6 @@ def main():
 
     #a definition of valid keys within a user section of FabAccess
     knownKeys = ['roles', 'passwd', 'cardkey']
-
-    usertoml = args.db
 
     print("{} Checking database {}\n".format("*"*25, "*"*25))
 
